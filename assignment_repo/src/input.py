@@ -8,6 +8,7 @@ class InputState:
     jump_pressed: bool   # edge
     fire_pressed: bool   # edge (create orb / start game)
     fire_held: bool      # level (blow further)
+    pause_pressed: bool  # edge (toggle pause)
 
 class InputManager:
     """
@@ -16,6 +17,7 @@ class InputManager:
     def __init__(self):
         self._prev_space = False
         self._prev_up = False
+        self._prev_p = False
 
     def capture(self) -> InputState:
         left = bool(keyboard.left)
@@ -23,19 +25,23 @@ class InputManager:
 
         up = bool(keyboard.up)
         space = bool(keyboard.space)
+        p = bool(keyboard.p)
 
         # edge detection
         jump_pressed = up and (not self._prev_up)
         fire_pressed = space and (not self._prev_space)
+        pause_pressed = p and (not self._prev_p)
 
         state = InputState(
             left=left,
             right=right,
             jump_pressed=jump_pressed,
             fire_pressed=fire_pressed,
-            fire_held=space
+            fire_held=space,
+            pause_pressed=pause_pressed
         )
 
         self._prev_up = up
         self._prev_space = space
+        self._prev_p = p
         return state

@@ -3,7 +3,7 @@ from src.screens.menu import MenuScreen
 
 class App:
     """
-    Owns the current screen and builds InputState once per frame (Task B).
+    Owns the current screen and builds InputState once per frame.
     """
     def __init__(self, sounds):
         self.sounds = sounds
@@ -14,7 +14,7 @@ class App:
         self.screen = new_screen
 
     def update(self):
-        input_state = self.input_manager.capture()  # ✅ centralized snapshot once per frame
+        input_state = self.input_manager.capture()  # centralized snapshot once per frame
         self.screen.update(input_state)
 
     def draw(self, screen):

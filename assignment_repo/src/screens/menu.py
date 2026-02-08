@@ -7,7 +7,7 @@ class MenuScreen:
         set_game(self.game)
 
     def update(self, input_state):
-        # ✅ edge detection for starting the game (SPACE press)
+        # Start game on SPACE edge
         if input_state.fire_pressed:
             from src.screens.play import PlayScreen
             self.app.change_screen(PlayScreen(self.app))

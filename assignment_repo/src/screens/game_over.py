@@ -7,7 +7,7 @@ class GameOverScreen:
         set_game(self.game)
 
     def update(self, input_state):
-        # ✅ edge detection for returning to menu (SPACE press)
+        # Return to menu on SPACE edge
         if input_state.fire_pressed:
             from src.screens.menu import MenuScreen
             self.app.change_screen(MenuScreen(self.app))

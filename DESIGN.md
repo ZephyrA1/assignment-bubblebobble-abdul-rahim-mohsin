@@ -1,4 +1,4 @@
-# DESIGN — Tasks A + B
+# DESIGN — Tasks A + B + C
 
 ## Task A — Screens architecture (State pattern)
 
@@ -16,32 +16,32 @@ Each screen implements:
 - `update(input_state)`
 - `draw(screen)`
 
-### Screens
+### Screens (Task A)
 - **MenuScreen**
-  - Shows the title and “Press SPACE” animation.
-  - Creates a background `Game(player=None)` so the background can animate like the original menu.
-  - On `SPACE` (pressed-this-frame) → transitions to `PlayScreen`.
+  - Shows title + “Press SPACE” animation.
+  - Uses a background `Game(player=None)` to animate behind the menu.
+  - On `SPACE` pressed-this-frame → transitions to `PlayScreen`.
 
 - **PlayScreen**
-  - Creates the real `Game(Player())` instance (this is where gameplay begins).
-  - Updates the game each frame using the current `input_state`.
-  - When `player.lives < 0` → transitions to `GameOverScreen`.
+  - Creates the real `Game(Player())` instance.
+  - Updates the game each frame using the `input_state`.
+  - If `player.lives < 0` → transitions to `GameOverScreen`.
 
 - **GameOverScreen**
-  - Draws the final scene + HUD + “Game Over” overlay.
-  - On `SPACE` (pressed-this-frame) → transitions back to `MenuScreen`.
+  - Draws final scene + HUD + “Game Over” overlay.
+  - On `SPACE` pressed-this-frame → transitions back to `MenuScreen`.
 
 ### Why this meets Task A requirements
 - Global `update()` and `draw()` are thin delegates:
   - `update()` → `app.update()`
   - `draw()` → `app.draw(screen)`
-- No global state branching happens inside global `update()`.
-- `Game()` creation happens inside screen transitions (Menu → Play), not in the global update.
-- Screen transitions go through a single method: `app.change_screen(...)`.
+- No global state branching inside global `update()`.
+- `Game()` creation occurs during screen transitions (Menu → Play).
+- Screen changes go through one method: `app.change_screen(...)`.
 
 ---
 
-## Task B — Input design (Input snapshot + edge detection / Command pattern)
+## Task B — Input snapshot + edge detection (Command pattern)
 
 Task B removes:
 - global `space_down`
@@ -49,7 +49,7 @@ Task B removes:
 - direct access to `keyboard.*` inside `Player.update()`
 
 ### InputState
-Input is represented by an immutable snapshot object built once per frame:
+Input is represented by an immutable snapshot built once per frame:
 
 Required fields:
 - `left: bool`
@@ -57,30 +57,44 @@ Required fields:
 - `jump_pressed: bool` (edge)
 - `fire_pressed: bool` (edge; start game + create orb)
 - `fire_held: bool` (level; blow orb further)
+- `pause_pressed: bool` (edge; used in Task C)
 
 ### Centralized input capture (InputManager)
-- `InputManager.capture()` reads raw keyboard state once per frame and produces an `InputState`.
-- Edge detection is implemented by storing previous frame values and comparing:
+- `InputManager.capture()` reads keyboard state once per frame and produces `InputState`.
+- Edge detection is implemented using previous-frame values:
   - `fire_pressed = space_now and not space_prev`
   - `jump_pressed = up_now and not up_prev`
+  - `pause_pressed = p_now and not p_prev`
 
-### How input flows through the program
-1. `App.update()` calls `InputManager.capture()` once per frame.
-2. The resulting `InputState` is passed into `screen.update(input_state)`.
-3. In Play mode, `Game.update(input_state)` passes the same snapshot to `Player.update(input_state)`.
+### Input flow
+1. `App.update()` builds `InputState` once per frame.
+2. The current screen receives it via `screen.update(input_state)`.
+3. In Play, `Game.update(input_state)` passes the same object to `Player.update(input_state)`.
 
 ### Task B acceptance points
-- `Player.update(input_state)` does not read `keyboard.*` directly.
+- `Player.update(input_state)` does not read `keyboard.*`.
 - Edge detection works for:
-  - starting the game from Menu (`fire_pressed` / SPACE press)
-  - firing an orb (`fire_pressed` / SPACE press)
-- Holding SPACE uses `fire_held` to control “blow further”.
+  - starting from Menu (`fire_pressed`)
+  - firing an orb (`fire_pressed`)
+- Holding SPACE uses `fire_held` to blow further.
 
 ---
 
-## Pause (not required for Task B)
+## Task C — Pause design
 
-Pause is not part of Task B requirements. If implemented later (Task C), it should:
-- freeze simulation updates when paused
-- still draw the current frame plus a PAUSED overlay
-- toggle using an edge-detected key press (e.g., `P`)
+Pause is implemented as a separate screen: **PauseScreen**.
+
+### How Pause is triggered (recommended behavior)
+- Only `PlayScreen` reacts to pause input:
+  - if `input_state.pause_pressed` → switch to `PauseScreen`
+- Menu/GameOver do not check pause input, so pause cannot be triggered there.
+
+### While paused (simulation frozen)
+- `PauseScreen.update()` does **not** call `game.update()` (no movement/spawns/timers).
+- `PauseScreen.draw()` still renders:
+  1. the current play scene (by drawing the existing `PlayScreen`)
+  2. a pause overlay text (e.g., “PAUSED”, “PRESS P”)
+
+### Resume behavior
+- Pressing `P` again returns to the **same PlayScreen instance**.
+- This guarantees a clean resume with the exact same game objects and state.

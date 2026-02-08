@@ -7,14 +7,20 @@ class PlayScreen:
         set_game(self.game)
 
     def update(self, input_state):
-        # Game over transition (same logic)
+        # Task C: toggle pause ONLY in PlayScreen
+        if input_state.pause_pressed:
+            from src.screens.pause import PauseScreen
+            self.app.change_screen(PauseScreen(self.app, self))
+            return
+
+        # Game over transition
         if self.game.player.lives < 0:
             self.game.play_sound("over")
             from src.screens.game_over import GameOverScreen
             self.app.change_screen(GameOverScreen(self.app, self.game))
             return
 
-        # ✅ pass snapshot to game (and player)
+        # Normal simulation update
         self.game.update(input_state)
 
     def draw(self, screen):

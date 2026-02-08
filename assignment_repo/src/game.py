@@ -262,9 +262,6 @@ class Player(GravityActor):
         return False
 
     def update(self, input_state):
-        """
-        ✅ Task B: Player consumes input_state and does NOT read keyboard directly.
-        """
         super().update(self.health > 0)
 
         self.fire_timer -= 1
@@ -283,7 +280,6 @@ class Player(GravityActor):
                     self.lives -= 1
                     self.reset()
         else:
-            # Movement input
             if input_state.left:
                 dx = -1
             elif input_state.right:
@@ -294,7 +290,6 @@ class Player(GravityActor):
                 if self.fire_timer < 10:
                     self.move(dx, 0, 4)
 
-            # ✅ edge: create orb on SPACE press
             if input_state.fire_pressed and self.fire_timer <= 0 and len(game.orbs) < 5:
                 x = min(730, max(70, self.x + self.direction_x * 38))
                 y = self.y - 35
@@ -303,13 +298,11 @@ class Player(GravityActor):
                 game.play_sound("blow", 4)
                 self.fire_timer = 20
 
-            # Jump (edge). If you want hold-to-jump later, you can add jump_held in Task C.
             if input_state.jump_pressed and self.vel_y == 0 and self.landed:
                 self.vel_y = -16
                 self.landed = False
                 game.play_sound("jump")
 
-        # ✅ level: holding SPACE blows current orb further
         if input_state.fire_held:
             if self.blowing_orb:
                 self.blowing_orb.blown_frames += 4
@@ -318,7 +311,6 @@ class Player(GravityActor):
         else:
             self.blowing_orb = None
 
-        # Sprite selection (unchanged logic)
         self.image = "blank"
         if self.hurt_timer <= 0 or self.hurt_timer % 2 == 1:
             dir_index = "1" if self.direction_x > 0 else "0"
@@ -455,7 +447,6 @@ class Game:
             if obj:
                 obj.update()
 
-        # Player uses input snapshot (Task B)
         if self.player:
             self.player.update(input_state)
 
