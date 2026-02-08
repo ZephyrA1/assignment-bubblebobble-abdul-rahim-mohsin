@@ -20,14 +20,15 @@ TITLE = _T
 
 from src.app import App
 
-# IMPORTANT: sounds is a Pygame Zero builtin available in main.py at runtime.
+# sounds exists in this module at runtime; pass it in so Game can play sounds without importing builtins
 app = App(sounds)
 
 def update():
+    # Thin delegate
     app.update()
 
 def draw():
-    # IMPORTANT: screen is a Pygame Zero builtin available in main.py at runtime.
+    # Thin delegate (screen exists here at runtime)
     app.draw(screen)
 
 # Start music (kept)

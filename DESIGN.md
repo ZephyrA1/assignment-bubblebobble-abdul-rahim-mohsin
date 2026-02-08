@@ -1,8 +1,8 @@
-# DESIGN — Task A (Screens / State Pattern)
+# DESIGN — Tasks A + B
 
-## Screens architecture
+## Task A — Screens architecture (State pattern)
 
-The refactor replaces global “state branching” in `update()`/`draw()` with Screen objects managed by an `App`.
+The refactor replaces global branching on state in `update()`/`draw()` with Screen objects managed by an `App`.
 
 ### App
 - `App` owns:
@@ -26,16 +26,10 @@ Each screen implements:
   - Creates the real `Game(Player())` instance (this is where gameplay begins).
   - Updates the game each frame using the current `input_state`.
   - When `player.lives < 0` → transitions to `GameOverScreen`.
-  - On `P` (pressed-this-frame) → transitions to `PauseScreen` (optional screen).
 
 - **GameOverScreen**
   - Draws the final scene + HUD + “Game Over” overlay.
   - On `SPACE` (pressed-this-frame) → transitions back to `MenuScreen`.
-
-- **PauseScreen** (optional separate screen)
-  - Wraps a reference to the existing `PlayScreen` instance.
-  - Does not advance simulation; it only draws the frozen scene + a pause overlay.
-  - On `P` (pressed-this-frame) → returns to the same `PlayScreen` instance.
 
 ### Why this meets Task A requirements
 - Global `update()` and `draw()` are thin delegates:
@@ -47,30 +41,46 @@ Each screen implements:
 
 ---
 
-## Input design
+## Task B — Input design (Input snapshot + edge detection / Command pattern)
 
-Input is captured once per frame by an `InputManager`, producing an `InputState` that is passed into `screen.update(input_state)`.
+Task B removes:
+- global `space_down`
+- global `space_pressed()`
+- direct access to `keyboard.*` inside `Player.update()`
 
-`InputState` includes:
-- `left`, `right` (held)
-- `jump` (held), plus optional `jump_pressed` (edge)
-- `fire_held` (held) and `fire_pressed` (edge)
-- `pause_pressed` (edge)
+### InputState
+Input is represented by an immutable snapshot object built once per frame:
 
-**Pressed-this-frame (edge detection)** is implemented by storing previous key states inside `InputManager` and comparing them to the current frame. This is used for:
-- Starting the game on the menu (SPACE pressed)
-- Firing a new orb (SPACE pressed)
-- Toggling pause (P pressed)
+Required fields:
+- `left: bool`
+- `right: bool`
+- `jump_pressed: bool` (edge)
+- `fire_pressed: bool` (edge; start game + create orb)
+- `fire_held: bool` (level; blow orb further)
+
+### Centralized input capture (InputManager)
+- `InputManager.capture()` reads raw keyboard state once per frame and produces an `InputState`.
+- Edge detection is implemented by storing previous frame values and comparing:
+  - `fire_pressed = space_now and not space_prev`
+  - `jump_pressed = up_now and not up_prev`
+
+### How input flows through the program
+1. `App.update()` calls `InputManager.capture()` once per frame.
+2. The resulting `InputState` is passed into `screen.update(input_state)`.
+3. In Play mode, `Game.update(input_state)` passes the same snapshot to `Player.update(input_state)`.
+
+### Task B acceptance points
+- `Player.update(input_state)` does not read `keyboard.*` directly.
+- Edge detection works for:
+  - starting the game from Menu (`fire_pressed` / SPACE press)
+  - firing an orb (`fire_pressed` / SPACE press)
+- Holding SPACE uses `fire_held` to control “blow further”.
 
 ---
 
-## How Pause works
+## Pause (not required for Task B)
 
-Pause is implemented as an optional separate screen (`PauseScreen`):
-
-- In `PlayScreen.update`, when `pause_pressed` is true, the App switches to `PauseScreen`.
-- While paused:
-  - The game simulation is frozen (no updates to movement, timers, spawns, AI, collisions).
-  - Drawing still occurs by calling the play screen’s draw logic.
-  - A “PAUSED” overlay is drawn on top of the frozen frame.
-- Pressing `P` again switches back to the same `PlayScreen` instance so gameplay resumes exactly where it stopped.
+Pause is not part of Task B requirements. If implemented later (Task C), it should:
+- freeze simulation updates when paused
+- still draw the current frame plus a PAUSED overlay
+- toggle using an edge-detected key press (e.g., `P`)

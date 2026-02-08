@@ -45,7 +45,7 @@ LEVELS = [
      "","",""]
 ]
 
-# Keep global "game" pointer so core logic isn't rewritten.
+# Keep global "game" pointer so we refactor, not rewrite.
 game = None
 
 def set_game(new_game):
@@ -262,6 +262,9 @@ class Player(GravityActor):
         return False
 
     def update(self, input_state):
+        """
+        ✅ Task B: Player consumes input_state and does NOT read keyboard directly.
+        """
         super().update(self.health > 0)
 
         self.fire_timer -= 1
@@ -280,9 +283,10 @@ class Player(GravityActor):
                     self.lives -= 1
                     self.reset()
         else:
-            if input_state and input_state.left:
+            # Movement input
+            if input_state.left:
                 dx = -1
-            elif input_state and input_state.right:
+            elif input_state.right:
                 dx = 1
 
             if dx != 0:
@@ -290,7 +294,8 @@ class Player(GravityActor):
                 if self.fire_timer < 10:
                     self.move(dx, 0, 4)
 
-            if input_state and input_state.fire_pressed and self.fire_timer <= 0 and len(game.orbs) < 5:
+            # ✅ edge: create orb on SPACE press
+            if input_state.fire_pressed and self.fire_timer <= 0 and len(game.orbs) < 5:
                 x = min(730, max(70, self.x + self.direction_x * 38))
                 y = self.y - 35
                 self.blowing_orb = Orb((x, y), self.direction_x)
@@ -298,12 +303,14 @@ class Player(GravityActor):
                 game.play_sound("blow", 4)
                 self.fire_timer = 20
 
-            if input_state and input_state.jump and self.vel_y == 0 and self.landed:
+            # Jump (edge). If you want hold-to-jump later, you can add jump_held in Task C.
+            if input_state.jump_pressed and self.vel_y == 0 and self.landed:
                 self.vel_y = -16
                 self.landed = False
                 game.play_sound("jump")
 
-        if input_state and input_state.fire_held:
+        # ✅ level: holding SPACE blows current orb further
+        if input_state.fire_held:
             if self.blowing_orb:
                 self.blowing_orb.blown_frames += 4
                 if self.blowing_orb.blown_frames >= 120:
@@ -311,6 +318,7 @@ class Player(GravityActor):
         else:
             self.blowing_orb = None
 
+        # Sprite selection (unchanged logic)
         self.image = "blank"
         if self.hurt_timer <= 0 or self.hurt_timer % 2 == 1:
             dir_index = "1" if self.direction_x > 0 else "0"
@@ -447,6 +455,7 @@ class Game:
             if obj:
                 obj.update()
 
+        # Player uses input snapshot (Task B)
         if self.player:
             self.player.update(input_state)
 
@@ -496,6 +505,7 @@ class Game:
                 print(e)
 
 
+# HUD / font helpers
 CHAR_WIDTH = [27, 26, 25, 26, 25, 25, 26, 25, 12, 26, 26, 25, 33, 25, 26,
               25, 27, 26, 26, 25, 26, 26, 38, 25, 25, 25]
 
