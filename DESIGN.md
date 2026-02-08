@@ -1,4 +1,4 @@
-# DESIGN — Tasks A + B + C
+# DESIGN — Tasks A, B, C
 
 ## Task A — Screens architecture (State pattern)
 

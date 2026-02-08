@@ -1,4 +1,4 @@
-# Bubble Bobble (Cavern) Refactor — Tasks A + B + C
+# Assignment Bubble Bobble — Tasks A, B, C
 
 This project refactors the original PyGame Zero `main.py` code while keeping gameplay equivalent (controls, scoring, enemy behavior, and level progression).
 
@@ -8,7 +8,7 @@ This project refactors the original PyGame Zero `main.py` code while keeping gam
 
 ---
 
-## How to run the game (Task A + Task B + Task C)
+## How to run the game
 
 From the repo root:
 
