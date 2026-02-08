@@ -1,11 +1,9 @@
-from pgzero.builtins import screen
 from src.game import Game, set_game
 
 class MenuScreen:
     def __init__(self, app):
         self.app = app
-        # Background game (no player) like original menu
-        self.game = Game()
+        self.game = Game(player=None, sounds=self.app.sounds)
         set_game(self.game)
 
     def update(self, input_state):
@@ -14,15 +12,14 @@ class MenuScreen:
             self.app.change_screen(PlayScreen(self.app))
             return
 
-        # Keep background animating like original
+        # animate background like original menu
         self.game.update(None)
 
-    def draw(self):
-        self.game.draw()
+    def draw(self, screen):
+        self.game.draw(screen)
 
-        # Title overlay like original
+        # title overlay like original
         screen.blit("title", (0, 0))
 
-        # "Press SPACE" animation like original
         anim_frame = min(((self.game.timer + 40) % 160) // 4, 9)
         screen.blit("space" + str(anim_frame), (130, 280))

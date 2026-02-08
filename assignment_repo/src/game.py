@@ -1,11 +1,6 @@
-# game.py (existing Game logic can live here)
-
 from random import choice, randint, random, shuffle
-from pgzero.builtins import Actor, screen, sounds
+from pgzero.builtins import Actor
 
-# -----------------------------
-# Constants (kept from original)
-# -----------------------------
 WIDTH = 800
 HEIGHT = 480
 TITLE = "Cavern"
@@ -50,8 +45,7 @@ LEVELS = [
      "","",""]
 ]
 
-# This module-level variable is used by the original code patterns
-# (so entities can still reference "game" without rewriting everything).
+# Keep global "game" pointer so core logic isn't rewritten.
 game = None
 
 def set_game(new_game):
@@ -69,6 +63,7 @@ def block(x, y):
 
 def sign(x):
     return -1 if x < 0 else 1
+
 
 class CollideActor(Actor):
     def __init__(self, pos, anchor=ANCHOR_CENTRE):
@@ -92,6 +87,7 @@ class CollideActor(Actor):
             self.pos = new_x, new_y
 
         return False
+
 
 class Orb(CollideActor):
     MAX_TIMER = 250
@@ -135,6 +131,7 @@ class Orb(CollideActor):
             else:
                 self.image = "orb" + str(3 + (((self.timer - 9) // 8) % 4))
 
+
 class Bolt(CollideActor):
     SPEED = 7
 
@@ -156,6 +153,7 @@ class Bolt(CollideActor):
         anim_frame = str((game.timer // 4) % 2)
         self.image = "bolt" + direction_idx + anim_frame
 
+
 class Pop(Actor):
     def __init__(self, pos, type):
         super().__init__("blank", pos)
@@ -165,6 +163,7 @@ class Pop(Actor):
     def update(self):
         self.timer += 1
         self.image = "pop" + str(self.type) + str(self.timer // 2)
+
 
 class GravityActor(CollideActor):
     MAX_FALL_SPEED = 10
@@ -186,6 +185,7 @@ class GravityActor(CollideActor):
                 self.y = 1
         else:
             self.y += self.vel_y
+
 
 class Fruit(GravityActor):
     APPLE = 0
@@ -230,6 +230,7 @@ class Fruit(GravityActor):
 
         anim_frame = str([0, 1, 2, 1][(game.timer // 6) % 4])
         self.image = "fruit" + str(self.type) + anim_frame
+
 
 class Player(GravityActor):
     def __init__(self):
@@ -279,9 +280,9 @@ class Player(GravityActor):
                     self.lives -= 1
                     self.reset()
         else:
-            if input_state.left:
+            if input_state and input_state.left:
                 dx = -1
-            elif input_state.right:
+            elif input_state and input_state.right:
                 dx = 1
 
             if dx != 0:
@@ -289,7 +290,7 @@ class Player(GravityActor):
                 if self.fire_timer < 10:
                     self.move(dx, 0, 4)
 
-            if input_state.fire_pressed and self.fire_timer <= 0 and len(game.orbs) < 5:
+            if input_state and input_state.fire_pressed and self.fire_timer <= 0 and len(game.orbs) < 5:
                 x = min(730, max(70, self.x + self.direction_x * 38))
                 y = self.y - 35
                 self.blowing_orb = Orb((x, y), self.direction_x)
@@ -297,13 +298,12 @@ class Player(GravityActor):
                 game.play_sound("blow", 4)
                 self.fire_timer = 20
 
-            # Jump uses held input to match original feel
-            if input_state.jump and self.vel_y == 0 and self.landed:
+            if input_state and input_state.jump and self.vel_y == 0 and self.landed:
                 self.vel_y = -16
                 self.landed = False
                 game.play_sound("jump")
 
-        if input_state.fire_held:
+        if input_state and input_state.fire_held:
             if self.blowing_orb:
                 self.blowing_orb.blown_frames += 4
                 if self.blowing_orb.blown_frames >= 120:
@@ -325,6 +325,7 @@ class Player(GravityActor):
                 self.image = "still"
             else:
                 self.image = "run" + dir_index + str((game.timer // 8) % 4)
+
 
 class Robot(GravityActor):
     TYPE_NORMAL = 0
@@ -388,9 +389,12 @@ class Robot(GravityActor):
             image += str(1 + ((game.timer // 4) % 4))
         self.image = image
 
+
 class Game:
-    def __init__(self, player=None):
+    def __init__(self, player=None, sounds=None):
         self.player = player
+        self.sounds = sounds
+
         self.level_colour = -1
         self.level = -1
         self.next_level()
@@ -439,12 +443,10 @@ class Game:
     def update(self, input_state):
         self.timer += 1
 
-        # Update everything except player
         for obj in self.fruits + self.bolts + self.enemies + self.pops + self.orbs:
             if obj:
                 obj.update()
 
-        # Update player with input_state (refactor-friendly)
         if self.player:
             self.player.update(input_state)
 
@@ -466,7 +468,7 @@ class Game:
             if len([orb for orb in self.orbs if orb.trapped_enemy_type is not None]) == 0:
                 self.next_level()
 
-    def draw(self):
+    def draw(self, screen):
         screen.blit("bg%d" % self.level_colour, (0, 0))
         block_sprite = "block" + str(self.level % 4)
 
@@ -486,16 +488,14 @@ class Game:
                 obj.draw()
 
     def play_sound(self, name, count=1):
-        if self.player:
+        if self.player and self.sounds:
             try:
-                sound = getattr(sounds, name + str(randint(0, count - 1)))
+                sound = getattr(self.sounds, name + str(randint(0, count - 1)))
                 sound.play()
             except Exception as e:
                 print(e)
 
-# ---------
-# UI helpers
-# ---------
+
 CHAR_WIDTH = [27, 26, 25, 26, 25, 25, 26, 25, 12, 26, 26, 25, 33, 25, 26,
               25, 27, 26, 26, 25, 26, 26, 38, 25, 25, 25]
 
@@ -503,7 +503,7 @@ def char_width(char):
     index = max(0, ord(char) - 65)
     return CHAR_WIDTH[index]
 
-def draw_text(text, y, x=None):
+def draw_text(screen, text, y, x=None):
     if x is None:
         x = (WIDTH - sum([char_width(c) for c in text])) // 2
     for char in text:
@@ -512,11 +512,11 @@ def draw_text(text, y, x=None):
 
 IMAGE_WIDTH = {"life": 44, "plus": 40, "health": 40}
 
-def draw_status():
+def draw_status(screen):
     number_width = CHAR_WIDTH[0]
     s = str(game.player.score)
-    draw_text(s, 451, WIDTH - 2 - (number_width * len(s)))
-    draw_text("LEVEL " + str(game.level + 1), 451)
+    draw_text(screen, s, 451, WIDTH - 2 - (number_width * len(s)))
+    draw_text(screen, "LEVEL " + str(game.level + 1), 451)
 
     lives_health = ["life"] * min(2, game.player.lives)
     if game.player.lives > 2:

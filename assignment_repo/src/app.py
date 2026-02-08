@@ -4,9 +4,10 @@ from src.screens.menu import MenuScreen
 class App:
     """
     Owns the current screen.
-    All screen switching must go through change_screen(...) (assignment requirement).
+    Switching between screens must go through change_screen(...).
     """
-    def __init__(self):
+    def __init__(self, sounds):
+        self.sounds = sounds
         self.input_manager = InputManager()
         self.screen = MenuScreen(self)
 
@@ -17,5 +18,5 @@ class App:
         input_state = self.input_manager.capture()
         self.screen.update(input_state)
 
-    def draw(self):
-        self.screen.draw()
+    def draw(self, screen):
+        self.screen.draw(screen)
